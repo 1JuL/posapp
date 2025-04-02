@@ -7,7 +7,7 @@ export default function Index() {
 
   useEffect(() => {
     setTimeout(() => {
-      router.replace("/navbuttons");
+      router.replace("/home");
     }, 1000);
   }, []);
 

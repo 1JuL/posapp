@@ -8,17 +8,36 @@ import {
   signOut,
   updateProfile,
 } from "firebase/auth";
-import { AuthContextType, AuthProviderProps, UserType } from "@/interfaces/AppInterfaces";
-import { doc, setDoc } from "firebase/firestore";
+
+import {
+  AuthContextType,
+  AuthProviderProps,
+  ExtendedUser,
+  UserType,
+} from "@/interfaces/AppInterfaces";
+
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<ExtendedUser | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        // Obtenemos el documento del usuario en Firestore
+        const docRef = doc(db, "users", currentUser.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setUser({ ...currentUser, role: data.role } as ExtendedUser);
+        } else {
+          setUser(currentUser as ExtendedUser);
+        }
+      } else {
+        setUser(null);
+      }
     });
     return () => unsubscribe();
   }, []);
@@ -41,17 +60,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const register = async (user: UserType): Promise<void> => {
-    const userCredential = await createUserWithEmailAndPassword(auth, user.email, user.password);
+  const register = async (userData: UserType): Promise<void> => {
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      userData.email,
+      userData.password
+    );
     const firebaseUser = userCredential.user;
-    await updateProfile(firebaseUser, { displayName: user.name });
-    await userCredential.user.reload();
+    await updateProfile(firebaseUser, { displayName: userData.name });
+    await firebaseUser.reload();
 
     await setDoc(doc(db, "users", firebaseUser.uid), {
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role || "client",
+      name: userData.name,
+      email: userData.email,
+      phone: userData.phone,
+      role: userData.role || "client",
       createdAt: new Date(),
     });
   };

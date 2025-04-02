@@ -7,21 +7,32 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import Toast from "react-native-toast-message";
 import { useRouter } from "expo-router";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const changeScreen = () => {
-    router.replace("/dashboard");
-  };
+  // Efecto para redirigir cuando el usuario cambia
+  useEffect(() => {
+    if (user) {
+      if (user.role === "client") {
+        router.replace("/client_dashboard");
+      } else if (user.role === "admin") {
+        router.replace("/admin_dashboard");
+      } else if (user.role === "chef") {
+        router.replace("/chef_dashboard");
+      } else if (user.role === "cashier") {
+        router.replace("/cashier_dashboard");
+      }
+    }
+  }, [user, router]);
 
   const handleLogin = async () => {
     setLoading(true);
@@ -32,9 +43,7 @@ export default function Login() {
         text1: "Inicio de sesión exitoso",
         text2: "Bienvenido de nuevo",
       });
-      setTimeout(() => {
-        changeScreen();
-      }, 1500);
+      // No es necesario llamar a changeScreen aquí, ya que el useEffect se encargará de la redirección.
     } catch (error: any) {
       console.log({ error });
       Toast.show({
