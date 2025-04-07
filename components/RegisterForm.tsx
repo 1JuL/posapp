@@ -1,3 +1,4 @@
+// components/RegisterForm.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -6,15 +7,18 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Modal,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import Toast from "react-native-toast-message";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "expo-router";
 import { UserType, RegisterFormProps } from "@/interfaces/AppInterfaces";
+import { auth } from "@/utils/firebase";
+import { EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
 
 export default function RegisterForm({ role, onSuccess }: RegisterFormProps) {
-  const { register, login } = useAuth();
+  const { register, login, staffRegister } = useAuth();
   const router = useRouter();
 
   const [name, setName] = useState("");
@@ -23,6 +27,16 @@ export default function RegisterForm({ role, onSuccess }: RegisterFormProps) {
   const [confirmEmail, setConfirmEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+
+  const newUser: UserType = {
+    email,
+    password,
+    name,
+    phone,
+    role,
+  };
 
   const handleRegister = async () => {
     if (email !== confirmEmail) {
@@ -33,49 +47,76 @@ export default function RegisterForm({ role, onSuccess }: RegisterFormProps) {
       });
       return;
     }
-
     setLoading(true);
-    const newUser: UserType = {
-      email,
-      password,
-      name,
-      phone,
-      role,
-    };
-
     try {
-      await register(newUser);
-      Toast.show({
-        type: "success",
-        text1: "Registro exitoso",
-        text2: `Bienvenido ${name}!`,
-      });
-
-      // Solo se inicia sesión automáticamente si el rol es "client"
       if (role === "client") {
+        await register(newUser);
+        Toast.show({
+          type: "success",
+          text1: "Registro exitoso",
+          text2: `Bienvenido ${name}!`,
+        });
         try {
           await login(email, password);
         } catch (error) {
           console.error(error);
         }
-      }
-
-      // Si se pasa un callback onSuccess, se ejecuta, de lo contrario redirige al dashboard
-      if (onSuccess) {
-        onSuccess();
+        setTimeout(() => {
+          router.replace("/(app)/client_dashboard");
+        }, 1500);
       } else {
-        if (role === "client") {
-          setTimeout(() => {
-            router.replace("/(app)/client_dashboard");
-          }, 1500);
-        }
+        setModalVisible(true);
       }
     } catch (error: any) {
       console.error(error);
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: error.message || "Ocurrió un error durante el proceso de registro.",
+        text2: error.message || "Ocurrió un error durante el registro.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmAdmin = async () => {
+    setModalVisible(false);
+    setLoading(true);
+    try {
+      const currentAdmin = auth.currentUser;
+      if (!currentAdmin) {
+        throw new Error("No hay un administrador autenticado.");
+      }
+      const adminEmail = currentAdmin.email;
+      if (!adminEmail) {
+        throw new Error("El correo electrónico del administrador no está disponible.");
+      }
+      const credential = EmailAuthProvider.credential(adminEmail, adminPassword);
+      await reauthenticateWithCredential(currentAdmin, credential);
+
+      await staffRegister(adminPassword, newUser);
+
+      Toast.show({
+        type: "success",
+        text1: "Registro exitoso",
+        text2: `Empleado ${name} registrado correctamente.`,
+        visibilityTime: 2000,
+      });
+      setAdminPassword("");
+
+      setTimeout(() => {
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          router.replace("/admin_dashboard");
+        }
+      }, 2000);
+    } catch (error: any) {
+      console.error(error);
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: error.message || "Ocurrió un error durante el registro.",
       });
     } finally {
       setLoading(false);
@@ -147,6 +188,43 @@ export default function RegisterForm({ role, onSuccess }: RegisterFormProps) {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Modal para confirmar la contraseña del administrador */}
+      <Modal visible={modalVisible} transparent animationType="slide">
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Confirmar registro</Text>
+            <Text style={styles.modalSubtitle}>
+              Ingrese su contraseña de administrador para confirmar el registro.
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Contraseña de admin"
+              placeholderTextColor="#ccc"
+              secureTextEntry
+              value={adminPassword}
+              onChangeText={setAdminPassword}
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={handleConfirmAdmin}
+                disabled={loading}
+              >
+                <Text style={styles.modalButtonText}>Confirmar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalCancel}
+                onPress={() => setModalVisible(false)}
+                disabled={loading}
+              >
+                <Text style={styles.modalCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Toast />
     </>
   );
@@ -197,5 +275,68 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#fff",
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: "#222",
+    borderRadius: 10,
+    padding: 20,
+    alignItems: "center",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#fff",
+    marginBottom: 10,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#ccc",
+    textAlign: "center",
+    marginBottom: 15,
+  },
+  modalInput: {
+    width: "100%",
+    height: 45,
+    paddingHorizontal: 15,
+    borderRadius: 25,
+    backgroundColor: "#333",
+    color: "#fff",
+    marginBottom: 15,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 25,
+    backgroundColor: "#4CAF50",
+    alignItems: "center",
+    marginRight: 5,
+  },
+  modalButtonText: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  modalCancel: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 25,
+    backgroundColor: "#f44336",
+    alignItems: "center",
+    marginLeft: 5,
+  },
+  modalCancelText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
 });

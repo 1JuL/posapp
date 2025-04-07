@@ -2,16 +2,16 @@ import { View, Text, StyleSheet, Image } from "react-native";
 import React from "react";
 import RegisterForm from "@/components/RegisterForm";
 
-export default function Add_Chef() {
+export default function Add_Cashier() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Registro de Chef</Text>
+      <Text style={styles.title}>Registro de Cajero</Text>
       <Image
-        source={require("../../assets/images/chef_icon.png")}
+        source={require("../../assets/images/cashier_icon.png")}
         style={styles.image}
         resizeMode="contain"
       />
-      <RegisterForm role="chef" />
+      <RegisterForm role="cashier" />
     </View>
   );
 }

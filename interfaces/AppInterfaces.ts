@@ -18,6 +18,7 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
   register: (user: UserType) => Promise<void>;
+  staffRegister: (adminPassword: string, userData: UserType) => Promise<void>;
 }
 
 export interface AuthProviderProps {
@@ -27,6 +28,8 @@ export interface AuthProviderProps {
 export interface CameraModalProps {
   isVisible: boolean;
   image?: any;
+  onImageSelected: (uri: string) => void;
+  onCancel: () => void;
 }
 
 export interface RegisterFormProps {

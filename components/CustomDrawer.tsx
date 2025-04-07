@@ -30,11 +30,27 @@ export default function CustomDrawerContent(props: any) {
         {/* Opciones para rol "admin" */}
         {role === "admin" && (
           <>
-            <TouchableOpacity style={styles.button} onPress={() => router.push("/menu")}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => router.replace("/admin_dashboard")}
+            >
+              <Text style={styles.text}>Admin Dashboard</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/admin_menu")}>
               <Text style={styles.text}>Manage Menu</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.button} onPress={() => router.push("/add_chef")}>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/menu_view")}>
+              <Text style={styles.text}>View Menu</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/add_chef")}>
               <Text style={styles.text}>Add Chef</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/add_cashier")}>
+              <Text style={styles.text}>Add Cashier</Text>
             </TouchableOpacity>
           </>
         )}
@@ -42,8 +58,19 @@ export default function CustomDrawerContent(props: any) {
         {/* Opciones para rol "chef" */}
         {role === "chef" && (
           <>
-            <TouchableOpacity style={styles.button} onPress={() => router.push("/chef_dashboard")}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => router.replace("/chef_dashboard")}
+            >
               <Text style={styles.text}>Chef Dashboard</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/admin_menu")}>
+              <Text style={styles.text}>Manage Menu</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/menu_view")}>
+              <Text style={styles.text}>View Menu</Text>
             </TouchableOpacity>
           </>
         )}
@@ -53,9 +80,13 @@ export default function CustomDrawerContent(props: any) {
           <>
             <TouchableOpacity
               style={styles.button}
-              onPress={() => router.push("/cashier_dashboard")}
+              onPress={() => router.replace("/cashier_dashboard")}
             >
               <Text style={styles.text}>Cashier Dashboard</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/menu_view")}>
+              <Text style={styles.text}>View Menu</Text>
             </TouchableOpacity>
           </>
         )}
@@ -65,9 +96,13 @@ export default function CustomDrawerContent(props: any) {
           <>
             <TouchableOpacity
               style={styles.button}
-              onPress={() => router.push("/client_dashboard")}
+              onPress={() => router.replace("/client_dashboard")}
             >
               <Text style={styles.text}>Client Dashboard</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/menu_view")}>
+              <Text style={styles.text}>View Menu</Text>
             </TouchableOpacity>
           </>
         )}

@@ -26,7 +26,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
-        // Obtenemos el documento del usuario en Firestore
         const docRef = doc(db, "users", currentUser.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
@@ -79,8 +78,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
     });
   };
 
+  // Nueva función para registrar empleados sin perder la sesión del admin
+  const staffRegister = async (adminPassword: string, userData: UserType): Promise<void> => {
+    if (!user) {
+      throw new Error("No hay un administrador autenticado.");
+    }
+    const adminEmail = user.email;
+
+    if (!adminEmail) {
+      throw new Error("El correo del administrador no está disponible.");
+    }
+
+    // Crea el nuevo usuario (esto cambiará la sesión)
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      userData.email,
+      userData.password
+    );
+    const newUser = userCredential.user;
+    await updateProfile(newUser, { displayName: userData.name });
+    await newUser.reload();
+
+    await setDoc(doc(db, "users", newUser.uid), {
+      name: userData.name,
+      email: userData.email,
+      phone: userData.phone,
+      role: userData.role || "client",
+      createdAt: new Date(),
+    });
+    // Re-inicia la sesión del administrador usando su correo y la contraseña proporcionada
+    await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, register }}>
+    <AuthContext.Provider value={{ user, login, logout, register, staffRegister }}>
       {children}
     </AuthContext.Provider>
   );
