@@ -126,7 +126,7 @@ export default function Cashier_Dashboard() {
                   ))}
               </View>
               <TouchableOpacity style={styles.button} onPress={() => markOrderAsPaid(order.id)}>
-                <Text style={styles.buttonText}>Marcar como Paid</Text>
+                <Text style={styles.buttonText}>Mark as Paid</Text>
               </TouchableOpacity>
             </View>
           ))
