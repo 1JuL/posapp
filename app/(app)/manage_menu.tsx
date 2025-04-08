@@ -12,7 +12,6 @@ import {
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/utils/firebase";
 import Toast from "react-native-toast-message";
-import { useRouter } from "expo-router";
 import EditDishModal from "@/components/EditDishModal"; // Asegúrate de que la ruta sea la correcta
 
 export default function Manage_Menu() {
@@ -21,7 +20,6 @@ export default function Manage_Menu() {
   const [deleting, setDeleting] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     const productsRef = collection(db, "products");
