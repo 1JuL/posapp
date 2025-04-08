@@ -1,202 +1,229 @@
-import React, { useState } from "react";
+// screens/ManageMenu.tsx
+import React, { useState, useEffect } from "react";
 import {
+  ScrollView,
   View,
   Text,
-  TextInput,
-  Button,
-  Image,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
+  Image,
 } from "react-native";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/utils/firebase";
-import { supabase } from "@/utils/supabase";
-import CameraModal from "@/components/CameraModal";
-import * as FileSystem from "expo-file-system";
-import { decode } from "base64-arraybuffer"; // Importa el método decode
+import Toast from "react-native-toast-message";
+import { useRouter } from "expo-router";
+import EditDishModal from "@/components/EditDishModal"; // Asegúrate de que la ruta sea la correcta
 
 export default function Manage_Menu() {
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [description, setDescription] = useState("");
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-  // Callback para recibir la imagen seleccionada desde el CameraModal
-  const handleImageSelected = (uri: string) => {
-    setImageUri(uri);
-    setModalVisible(false);
-  };
-
-  // Función para subir la imagen a Supabase y obtener la URL pública
-  const uploadImageToSupabase = async (uri: string) => {
-    try {
-      // Leer el archivo como base64
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
-      // Convertir la cadena base64 a ArrayBuffer
-      const binaryData = decode(base64);
-
-      // Generar un nombre único para la imagen
-      const filename = `dishes/${Date.now()}.jpg`;
-
-      // Subir la imagen al bucket "dishes-images"
-      const { error: uploadError } = await supabase.storage
-        .from("dishes-images")
-        .upload(filename, binaryData, {
-          contentType: "image/jpeg",
-        });
-
-      if (uploadError) throw uploadError;
-
-      // Obtener la URL pública de la imagen
-      const { data } = supabase.storage.from("dishes-images").getPublicUrl(filename);
-      return data.publicUrl;
-    } catch (error) {
-      console.error("Error subiendo la imagen: ", error);
-      return null;
-    }
-  };
-
-  // Función para agregar el producto a Firestore
-  const addProduct = async () => {
-    if (!name || !price || !description || !imageUri) {
-      Alert.alert("Por favor completa todos los campos y selecciona una imagen.");
-      return;
-    }
-    setLoading(true);
-    try {
-      const imageUrl = await uploadImageToSupabase(imageUri);
-      if (!imageUrl) {
-        Alert.alert("Error al subir la imagen");
+  useEffect(() => {
+    const productsRef = collection(db, "products");
+    const productsQuery = query(productsRef, orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(
+      productsQuery,
+      (snapshot) => {
+        const productsData = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          ...docSnap.data(),
+        }));
+        setProducts(productsData);
         setLoading(false);
-        return;
+      },
+      (error) => {
+        console.error("Error al cargar productos: ", error);
+        setLoading(false);
       }
-      await addDoc(collection(db, "products"), {
-        name,
-        price: parseFloat(price),
-        description,
-        imageUrl,
-        createdAt: new Date(),
+    );
+    return () => unsubscribe();
+  }, []);
+
+  const handleDelete = async (productId: string) => {
+    setDeleting(true);
+    try {
+      await deleteDoc(doc(db, "products", productId));
+      Toast.show({
+        type: "success",
+        text1: "Producto eliminado",
+        text2: "El producto se ha eliminado correctamente.",
       });
-      Alert.alert("Producto agregado exitosamente.");
-      // Reiniciar formulario
-      setName("");
-      setPrice("");
-      setDescription("");
-      setImageUri(null);
     } catch (error) {
-      console.error("Error agregando producto: ", error);
-      Alert.alert("Error agregando producto.");
+      console.error("Error al eliminar producto:", error);
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "No se pudo eliminar el producto.",
+      });
+    } finally {
+      setDeleting(false);
     }
-    setLoading(false);
   };
+
+  const handleEdit = (product: any) => {
+    setSelectedProduct(product);
+    setModalVisible(true);
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#10A37F" />
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      {/* Spinner de pantalla completa */}
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#10A37F" />
+    <View style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Manage Menu</Text>
+        {products.length === 0 ? (
+          <Text style={styles.noProductsText}>No hay productos disponibles.</Text>
+        ) : (
+          products.map((product) => (
+            <View key={product.id} style={styles.card}>
+              {product.imageUrl ? (
+                <Image source={{ uri: product.imageUrl }} style={styles.image} />
+              ) : null}
+              <View style={styles.cardContent}>
+                <Text style={styles.productName}>{product.name}</Text>
+                <Text style={styles.productDescription}>{product.description}</Text>
+                <Text style={styles.productPrice}>$ {product.price}</Text>
+              </View>
+              <View style={styles.buttonsContainer}>
+                <TouchableOpacity style={styles.editButton} onPress={() => handleEdit(product)}>
+                  <Text style={styles.buttonText}>Editar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.deleteButton}
+                  onPress={() => handleDelete(product.id)}
+                >
+                  <Text style={styles.buttonText}>Eliminar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        )}
+      </ScrollView>
+
+      {deleting && (
+        <View style={styles.deletingOverlay}>
+          <ActivityIndicator size="large" color="#fff" />
         </View>
       )}
-      <Text style={styles.title}>Gestionar Menú</Text>
-      <View style={styles.form}>
-        <TextInput
-          style={styles.input}
-          placeholder="Nombre del plato"
-          value={name}
-          onChangeText={setName}
+
+      {/* Modal para edición */}
+      {selectedProduct && (
+        <EditDishModal
+          visible={modalVisible}
+          dish={selectedProduct}
+          onClose={() => {
+            setModalVisible(false);
+            // Opcional: limpiar la selección luego de cerrar el modal.
+            setSelectedProduct(null);
+          }}
         />
-        <TextInput
-          style={styles.input}
-          placeholder="Precio"
-          value={price}
-          onChangeText={setPrice}
-          keyboardType="numeric"
-        />
-        <TextInput
-          style={[styles.input, styles.multiline]}
-          placeholder="Descripción"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-        />
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.imageButton}>
-          <Text style={styles.imageButtonText}>
-            {imageUri ? "Cambiar imagen" : "Seleccionar imagen"}
-          </Text>
-        </TouchableOpacity>
-        {imageUri && (
-          <Image source={{ uri: imageUri }} style={styles.imagePreview} resizeMode="contain" />
-        )}
-        <Button
-          title={loading ? "Agregando..." : "Agregar Plato"}
-          onPress={addProduct}
-          disabled={loading}
-        />
-      </View>
-      <CameraModal
-        isVisible={modalVisible}
-        onImageSelected={handleImageSelected}
-        onCancel={() => setModalVisible(false)}
-      />
+      )}
+
+      <Toast />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 20,
+    padding: 15,
     backgroundColor: "#fff",
   },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.8)",
+  loadingContainer: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 20,
   },
-  form: {
+  noProductsText: {
+    textAlign: "center",
+    fontSize: 16,
+    color: "#888",
+  },
+  card: {
+    backgroundColor: "#f9f9f9",
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 15,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  image: {
+    width: "100%",
+    height: 150,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  cardContent: {
+    marginBottom: 10,
+  },
+  productName: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  productDescription: {
+    fontSize: 14,
+    marginBottom: 5,
+    color: "#555",
+  },
+  productPrice: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#10A37F",
+  },
+  buttonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  editButton: {
+    backgroundColor: "#FFA500",
+    padding: 10,
+    borderRadius: 8,
     flex: 1,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10,
-  },
-  multiline: {
-    height: 100,
-    textAlignVertical: "top",
-  },
-  imageButton: {
-    backgroundColor: "#007bff",
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
     alignItems: "center",
+    marginRight: 5,
   },
-  imageButtonText: {
+  deleteButton: {
+    backgroundColor: "#ED8C8C",
+    padding: 10,
+    borderRadius: 8,
+    flex: 1,
+    alignItems: "center",
+    marginLeft: 5,
+  },
+  buttonText: {
     color: "#fff",
     fontSize: 16,
+    fontWeight: "bold",
   },
-  imagePreview: {
-    width: "100%",
-    height: 200,
-    marginBottom: 10,
+  deletingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
   },
 });
