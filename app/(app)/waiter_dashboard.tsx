@@ -12,16 +12,17 @@ import { db } from "@/utils/firebase";
 import { Order } from "@/interfaces/AppInterfaces";
 import Toast from "react-native-toast-message";
 
-export default function Chef_Dashboard() {
+export default function Waiter_Dashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
+    // Se consultan las órdenes que estén en "Ready for Pickup" o "Delivered"
     const ordersRef = collection(db, "orders");
     const ordersQuery = query(
       ordersRef,
-      where("status", "in", ["Ordered", "Cooking"]),
+      where("status", "in", ["Ready for Pickup", "Delivered"]),
       orderBy("createdAt", "asc")
     );
     const unsubscribe = onSnapshot(
@@ -35,7 +36,7 @@ export default function Chef_Dashboard() {
         setLoading(false);
       },
       (error) => {
-        console.error("Error fetching orders: ", error);
+        console.error("Error al cargar las órdenes:", error);
         setLoading(false);
       }
     );
@@ -52,7 +53,7 @@ export default function Chef_Dashboard() {
         text2: `Orden actualizada a ${newStatus}`,
       });
     } catch (error) {
-      console.error("Error updating order: ", error);
+      console.error("Error al actualizar la orden:", error);
       Toast.show({
         type: "error",
         text1: "Error",
@@ -74,9 +75,9 @@ export default function Chef_Dashboard() {
   return (
     <View style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Órdenes Pendientes</Text>
+        <Text style={styles.title}>Órdenes para Mesero</Text>
         {orders.length === 0 ? (
-          <Text style={styles.noOrdersText}>No hay órdenes pendientes</Text>
+          <Text style={styles.noOrdersText}>No hay órdenes disponibles para actualizar</Text>
         ) : (
           orders.map((order) => (
             <View key={order.id} style={styles.orderCard}>
@@ -97,20 +98,20 @@ export default function Chef_Dashboard() {
                     </View>
                   ))}
               </View>
-              {order.status === "Ordered" && (
+              {order.status === "Ready for Pickup" && (
                 <TouchableOpacity
                   style={styles.button}
-                  onPress={() => updateOrderStatus(order.id, "Cooking")}
+                  onPress={() => updateOrderStatus(order.id, "Delivered")}
                 >
-                  <Text style={styles.buttonText}>Start Cooking</Text>
+                  <Text style={styles.buttonText}>Mark as Delivered</Text>
                 </TouchableOpacity>
               )}
-              {order.status === "Cooking" && (
+              {order.status === "Delivered" && (
                 <TouchableOpacity
                   style={styles.button}
-                  onPress={() => updateOrderStatus(order.id, "Ready for Pickup")}
+                  onPress={() => updateOrderStatus(order.id, "Ready for Payment")}
                 >
-                  <Text style={styles.buttonText}>Ready for pick up</Text>
+                  <Text style={styles.buttonText}>Mark as Ready for Payment</Text>
                 </TouchableOpacity>
               )}
             </View>

@@ -23,13 +23,15 @@ export default function Login() {
   useEffect(() => {
     if (user) {
       if (user.role === "client") {
-        router.replace("/client_dashboard");
+        router.replace("/client_menu");
       } else if (user.role === "admin") {
         router.replace("/admin_dashboard");
       } else if (user.role === "chef") {
         router.replace("/chef_dashboard");
       } else if (user.role === "cashier") {
         router.replace("/cashier_dashboard");
+      } else if (user.role === "waiter") {
+        router.replace("/waiter_dashboard");
       }
     }
   }, [user, router]);

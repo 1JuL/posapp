@@ -37,16 +37,53 @@ export default function CustomDrawerContent(props: any) {
               <Text style={styles.text}>Admin Dashboard</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={() => router.replace("/admin_menu")}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => router.replace("/chef_dashboard")}
+            >
+              <Text style={styles.text}>Chef Dashboard</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => router.replace("/waiter_dashboard")}
+            >
+              <Text style={styles.text}>Waiter Dashboard</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => router.replace("/cashier_dashboard")}
+            >
+              <Text style={styles.text}>Cashier Dashboard</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/manage_menu")}>
               <Text style={styles.text}>Manage Menu</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={() => router.replace("/menu_view")}>
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/new_dish")}>
+              <Text style={styles.text}>Add a new dish</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/view_menu")}>
               <Text style={styles.text}>View Menu</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/client_menu")}>
+              <Text style={styles.text}>Make an Order</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/view_orders")}>
+              <Text style={styles.text}>Your Orders</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.button} onPress={() => router.replace("/add_chef")}>
               <Text style={styles.text}>Add Chef</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/add_waiter")}>
+              <Text style={styles.text}>Add Waiter</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.button} onPress={() => router.replace("/add_cashier")}>
@@ -65,11 +102,15 @@ export default function CustomDrawerContent(props: any) {
               <Text style={styles.text}>Chef Dashboard</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={() => router.replace("/admin_menu")}>
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/manage_menu")}>
               <Text style={styles.text}>Manage Menu</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={() => router.replace("/menu_view")}>
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/new_dish")}>
+              <Text style={styles.text}>Add a new dish</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/view_menu")}>
               <Text style={styles.text}>View Menu</Text>
             </TouchableOpacity>
           </>
@@ -85,7 +126,23 @@ export default function CustomDrawerContent(props: any) {
               <Text style={styles.text}>Cashier Dashboard</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={() => router.replace("/menu_view")}>
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/view_menu")}>
+              <Text style={styles.text}>View Menu</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* Opciones para rol "waiter" */}
+        {role === "waiter" && (
+          <>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => router.replace("/waiter_dashboard")}
+            >
+              <Text style={styles.text}>Waiter Dashboard</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/view_menu")}>
               <Text style={styles.text}>View Menu</Text>
             </TouchableOpacity>
           </>
@@ -94,15 +151,12 @@ export default function CustomDrawerContent(props: any) {
         {/* Opciones para rol "client" */}
         {role === "client" && (
           <>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => router.replace("/client_dashboard")}
-            >
-              <Text style={styles.text}>Client Dashboard</Text>
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/client_menu")}>
+              <Text style={styles.text}>View Menu</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={() => router.replace("/menu_view")}>
-              <Text style={styles.text}>View Menu</Text>
+            <TouchableOpacity style={styles.button} onPress={() => router.replace("/view_orders")}>
+              <Text style={styles.text}>Your Orders</Text>
             </TouchableOpacity>
           </>
         )}

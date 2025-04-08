@@ -62,7 +62,7 @@ export default function RegisterForm({ role, onSuccess }: RegisterFormProps) {
           console.error(error);
         }
         setTimeout(() => {
-          router.replace("/(app)/client_dashboard");
+          router.replace("/(app)/client_menu");
         }, 1500);
       } else {
         setModalVisible(true);
@@ -119,6 +119,12 @@ export default function RegisterForm({ role, onSuccess }: RegisterFormProps) {
         text2: error.message || "Ocurrió un error durante el registro.",
       });
     } finally {
+      setName("");
+      setPhone("");
+      setEmail("");
+      setConfirmEmail("");
+      setPassword("");
+      setAdminPassword;
       setLoading(false);
     }
   };
