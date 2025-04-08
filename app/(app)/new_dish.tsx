@@ -8,6 +8,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "@/utils/firebase";
@@ -16,7 +17,7 @@ import CameraModal from "@/components/CameraModal";
 import * as FileSystem from "expo-file-system";
 import { decode } from "base64-arraybuffer"; // Importa el método decode
 
-export default function Admin_Menu() {
+export default function New_Dish() {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
@@ -98,7 +99,13 @@ export default function Admin_Menu() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Gestionar Menú</Text>
+      {/* Spinner de pantalla completa */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#10A37F" />
+        </View>
+      )}
+      <Text style={styles.title}>Agregar un Platillo Nuevo</Text>
       <View style={styles.form}>
         <TextInput
           style={styles.input}
@@ -148,6 +155,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: "#fff",
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255,255,255,0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1,
   },
   title: {
     fontSize: 28,

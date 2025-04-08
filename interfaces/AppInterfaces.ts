@@ -6,11 +6,11 @@ export interface UserType {
   password: string;
   name: string;
   phone: string;
-  role: "client" | "admin" | "chef" | "cashier";
+  role: "client" | "admin" | "chef" | "cashier" | "waiter";
 }
 
 export interface ExtendedUser extends User {
-  role?: "client" | "admin" | "chef" | "cashier";
+  role?: "client" | "admin" | "chef" | "cashier" | "waiter";
 }
 
 export interface AuthContextType {
@@ -33,6 +33,46 @@ export interface CameraModalProps {
 }
 
 export interface RegisterFormProps {
-  role: "client" | "admin" | "chef" | "cashier";
+  role: "client" | "admin" | "chef" | "cashier" | "waiter";
   onSuccess?: () => void;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+}
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
+export interface OrderItem {
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+export interface Order {
+  id: string;
+  userId: string;
+  items: OrderItem[];
+  createdAt: any;
+  status: string;
+}
+
+export interface EditDishModalProps {
+  visible: boolean;
+  onClose: () => void;
+  dish: {
+    id: string;
+    name: string;
+    price: number;
+    description: string;
+    imageUrl: string;
+  };
 }
