@@ -9,6 +9,7 @@ export default function CameraModal(props: CameraModalProps) {
   const [facing, setFacing] = useState<CameraType>("back");
   const [permission, requestPermission] = useCameraPermissions();
   const [image, setImage] = useState<string | null>(null);
+  const [scanned, setScanned] = useState(false); // para modo scan
   const cameraRef = useRef<any>(null);
 
   if (!permission) {
@@ -30,19 +31,22 @@ export default function CameraModal(props: CameraModalProps) {
     setFacing((prev) => (prev === "back" ? "front" : "back"));
   };
 
+  // Función para tomar foto (modo imagen)
   const takePhoto = async () => {
     if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync();
         setImage(photo.uri);
-        // Notificar a la pantalla padre que se tomó una foto.
-        props.onImageSelected(photo.uri);
+        if (props.onImageSelected) {
+          props.onImageSelected(photo.uri);
+        }
       } catch (error) {
         console.error("Error taking photo:", error);
       }
     }
   };
 
+  // Función para seleccionar imagen desde la galería (modo imagen)
   const searchGallery = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
@@ -54,41 +58,69 @@ export default function CameraModal(props: CameraModalProps) {
     if (!result.canceled) {
       const uri = result.assets[0].uri;
       setImage(uri);
-      // Notificar a la pantalla padre con la URI de la imagen seleccionada.
-      props.onImageSelected(uri);
+      if (props.onImageSelected) {
+        props.onImageSelected(uri);
+      }
+    }
+  };
+
+  // Función para manejar el escaneo del QR (modo scan)
+  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
+    if (!scanned && props.onScanComplete) {
+      setScanned(true);
+      props.onScanComplete(data);
     }
   };
 
   return (
     <Modal visible={props.isVisible} animationType="slide">
       <View style={styles.modalContainer}>
-        <CameraView style={styles.camera} facing={facing} ref={cameraRef}>
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.button} onPress={takePhoto}>
-              <MaterialCommunityIcons name="camera" size={20} color="#FFFFFF" style={styles.icon} />
-              <Text style={styles.text}>Take Photo</Text>
-            </TouchableOpacity>
+        <CameraView
+          style={styles.camera}
+          facing={facing}
+          ref={cameraRef}
+          onBarcodeScanned={props.scanMode && !scanned ? handleBarCodeScanned : undefined}
+        >
+          {props.scanMode ? (
+            scanned && (
+              <TouchableOpacity style={styles.rescanButton} onPress={() => setScanned(false)}>
+                <Text style={styles.rescanText}>Toca para escanear de nuevo</Text>
+              </TouchableOpacity>
+            )
+          ) : (
+            // Modo imagen
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={styles.button} onPress={takePhoto}>
+                <MaterialCommunityIcons
+                  name="camera"
+                  size={20}
+                  color="#FFFFFF"
+                  style={styles.icon}
+                />
+                <Text style={styles.text}>Take Photo</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={searchGallery}>
-              <MaterialCommunityIcons
-                name="file-image"
-                size={20}
-                color="#FFFFFF"
-                style={styles.icon}
-              />
-              <Text style={styles.text}>Search Gallery</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.button} onPress={searchGallery}>
+                <MaterialCommunityIcons
+                  name="file-image"
+                  size={20}
+                  color="#FFFFFF"
+                  style={styles.icon}
+                />
+                <Text style={styles.text}>Search Gallery</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-              <MaterialCommunityIcons
-                name="camera-flip"
-                size={20}
-                color="#FFFFFF"
-                style={styles.icon}
-              />
-              <Text style={styles.text}>Flip Camera</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
+                <MaterialCommunityIcons
+                  name="camera-flip"
+                  size={20}
+                  color="#FFFFFF"
+                  style={styles.icon}
+                />
+                <Text style={styles.text}>Flip Camera</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </CameraView>
         <TouchableOpacity style={styles.cancelButton} onPress={props.onCancel}>
           <Text style={styles.cancelText}>Cancelar</Text>
@@ -142,5 +174,17 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  rescanButton: {
+    position: "absolute",
+    bottom: 100,
+    alignSelf: "center",
+    backgroundColor: "#10A37F",
+    padding: 10,
+    borderRadius: 8,
+  },
+  rescanText: {
+    color: "#fff",
+    fontSize: 16,
   },
 });

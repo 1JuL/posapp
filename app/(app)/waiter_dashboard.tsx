@@ -98,6 +98,10 @@ export default function Waiter_Dashboard() {
                     </View>
                   ))}
               </View>
+              <View style={styles.itemsContainer}>
+                <Text style={styles.orderId}>{order.tableId}</Text>
+                <Text style={styles.orderStatus}>Total: {order.total}</Text>
+              </View>
               {order.status === "Ready for Pickup" && (
                 <TouchableOpacity
                   style={styles.button}
