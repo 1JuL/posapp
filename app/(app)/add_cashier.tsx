@@ -7,7 +7,7 @@ export default function Add_Cashier() {
     <View style={styles.container}>
       <Text style={styles.title}>Registro de Cajero</Text>
       <Image
-        source={require("../../assets/images/cashier_icon.png")}
+        source={require("@/assets/images/cashier_icon.png")}
         style={styles.image}
         resizeMode="contain"
       />

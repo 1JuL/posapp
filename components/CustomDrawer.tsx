@@ -39,6 +39,13 @@ export default function CustomDrawerContent(props: any) {
 
             <TouchableOpacity
               style={styles.button}
+              onPress={() => router.replace("/view_receipts")}
+            >
+              <Text style={styles.text}>View Receipts</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.button}
               onPress={() => router.replace("/chef_dashboard")}
             >
               <Text style={styles.text}>Chef Dashboard</Text>
@@ -108,10 +115,6 @@ export default function CustomDrawerContent(props: any) {
 
             <TouchableOpacity style={styles.button} onPress={() => router.replace("/new_dish")}>
               <Text style={styles.text}>Add a new dish</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.button} onPress={() => router.replace("/view_menu")}>
-              <Text style={styles.text}>View Menu</Text>
             </TouchableOpacity>
           </>
         )}

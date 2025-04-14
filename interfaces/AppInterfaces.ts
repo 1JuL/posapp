@@ -9,6 +9,15 @@ export interface UserType {
   role: "client" | "admin" | "chef" | "cashier" | "waiter";
 }
 
+export interface UserDb {
+  id: string;
+  createdAt: any;
+  email: string;
+  name: string;
+  phone: string;
+  role: string;
+}
+
 export interface ExtendedUser extends User {
   role?: "client" | "admin" | "chef" | "cashier" | "waiter";
 }
@@ -45,6 +54,7 @@ export interface Product {
   description: string;
   price: number;
   imageUrl: string;
+  available: boolean;
 }
 
 export interface CartItem {

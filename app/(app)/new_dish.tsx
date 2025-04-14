@@ -83,6 +83,7 @@ export default function New_Dish() {
         description,
         imageUrl,
         createdAt: new Date(),
+        available: true,
       });
       Alert.alert("Producto agregado exitosamente.");
       // Reiniciar formulario

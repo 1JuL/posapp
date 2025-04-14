@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, Image, StyleSheet, ScrollView, ActivityIndicator } from "react-native";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "@/utils/firebase";
@@ -8,7 +8,7 @@ export default function View_Menu() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Se establece el listener en tiempo real
+    // Se establece el listener en tiempo real para la colección "products"
     const unsubscribe = onSnapshot(
       collection(db, "products"),
       (querySnapshot) => {
@@ -25,7 +25,6 @@ export default function View_Menu() {
       }
     );
 
-    // Se limpia la suscripción al desmontar el componente
     return () => unsubscribe();
   }, []);
 
@@ -47,6 +46,11 @@ export default function View_Menu() {
           )}
           <Text style={styles.description}>{item.description}</Text>
           <Text style={styles.price}>${parseFloat(item.price).toFixed(2)}</Text>
+          <Text
+            style={[styles.availability, item.available ? styles.available : styles.notAvailable]}
+          >
+            {item.available ? "Disponible" : "No disponible"}
+          </Text>
         </View>
       ))}
     </ScrollView>
@@ -95,5 +99,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#007bff",
+    marginBottom: 10,
+  },
+  availability: {
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  available: {
+    color: "#10A37F",
+  },
+  notAvailable: {
+    color: "#ED8C8C",
   },
 });

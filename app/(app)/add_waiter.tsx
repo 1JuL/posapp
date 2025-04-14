@@ -7,7 +7,7 @@ export default function Add_Waiter() {
     <View style={styles.container}>
       <Text style={styles.title}>Registro de Mesero</Text>
       <Image
-        source={require("../../assets/images/waiter_icon.png")}
+        source={require("@/assets/images/waiter_icon.png")}
         style={styles.image}
         resizeMode="contain"
       />
