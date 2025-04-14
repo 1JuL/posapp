@@ -72,6 +72,10 @@ export default function View_Orders() {
                 </View>
               ))}
             </View>
+            <View style={styles.itemsContainer}>
+              <Text style={styles.orderId}>{order.tableId}</Text>
+              <Text style={styles.orderStatus}>Total: {order.total}</Text>
+            </View>
           </View>
         ))
       )}

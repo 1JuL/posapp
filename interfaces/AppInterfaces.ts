@@ -30,6 +30,8 @@ export interface CameraModalProps {
   image?: any;
   onImageSelected: (uri: string) => void;
   onCancel: () => void;
+  scanMode?: boolean;
+  onScanComplete?: (data: string) => void;
 }
 
 export interface RegisterFormProps {
@@ -63,6 +65,8 @@ export interface Order {
   items: OrderItem[];
   createdAt: any;
   status: string;
+  tableId: string;
+  total: string;
 }
 
 export interface EditDishModalProps {

@@ -13,15 +13,18 @@ import { collection, onSnapshot, addDoc, getDocs, query, where } from "firebase/
 import { db } from "@/utils/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { CartItem, Product } from "@/interfaces/AppInterfaces";
+import CameraModal from "@/components/CameraModal";
 
 export default function Client_Menu() {
   const [menuItems, setMenuItems] = useState<Product[]>([]);
   const [loadingMenu, setLoadingMenu] = useState(true);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [ordering, setOrdering] = useState(false);
-  const { user } = useAuth(); // Obtenemos el usuario actual
+  const [tableId, setTableId] = useState<string | null>(null);
+  const [qrModalVisible, setQrModalVisible] = useState(false);
+  const { user } = useAuth(); // Usuario autenticado
 
-  // Listener en tiempo real para actualizaciones en la colección "products"
+  // Listener en tiempo real para la colección "products"
   useEffect(() => {
     const unsubscribe = onSnapshot(
       collection(db, "products"),
@@ -41,7 +44,6 @@ export default function Client_Menu() {
         setLoadingMenu(false);
       }
     );
-
     return () => unsubscribe();
   }, []);
 
@@ -73,7 +75,7 @@ export default function Client_Menu() {
     }
   };
 
-  // Enviar el pedido a Firestore (colección "orders")
+  // Función para enviar el pedido a Firestore (colección "orders")
   const handleOrder = async () => {
     if (cart.length === 0) {
       Alert.alert("Carrito vacío", "Por favor agrega productos a tu pedido.");
@@ -83,9 +85,13 @@ export default function Client_Menu() {
       Alert.alert("Usuario no autenticado", "Debes iniciar sesión para ordenar.");
       return;
     }
+    if (!tableId) {
+      Alert.alert("Mesa no asignada", "Debes escanear el QR de la mesa antes de ordenar.");
+      return;
+    }
     setOrdering(true);
     try {
-      // Consulta para verificar si el usuario ya tiene 2 órdenes pendientes
+      // Consulta para verificar si el usuario ya tiene 2 órdenes pendientes (estado "Ordered")
       const ordersQuery = query(
         collection(db, "orders"),
         where("userId", "==", user.uid),
@@ -98,14 +104,18 @@ export default function Client_Menu() {
         return;
       }
 
+      const total = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
+
       const orderData = {
-        userId: user.uid, // Se añade el id del usuario actual
+        userId: user.uid,
+        tableId,
         items: cart.map((item) => ({
           productId: item.product.id,
           name: item.product.name,
           price: item.product.price,
           quantity: item.quantity,
         })),
+        total,
         createdAt: new Date(),
         status: "Ordered",
       };
@@ -119,20 +129,34 @@ export default function Client_Menu() {
     setOrdering(false);
   };
 
+  if (loadingMenu || ordering) {
+    return (
+      <View style={styles.loadingOverlay}>
+        <ActivityIndicator size="large" color="#10A37F" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {(loadingMenu || ordering) && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#10A37F" />
-        </View>
-      )}
+      {/* Botón para escanear el QR de la mesa */}
+      <TouchableOpacity style={styles.qrButton} onPress={() => setQrModalVisible(true)}>
+        <Text style={styles.qrButtonText}>
+          {tableId ? `Mesa asignada: ${tableId}` : "Escanear QR de Mesa"}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.clearTable} onPress={() => setTableId(null)}>
+        <Text style={styles.qrButtonText}>Limpiar Mesa</Text>
+      </TouchableOpacity>
+
       <ScrollView style={styles.menuContainer}>
         <Text style={styles.sectionTitle}>Menú</Text>
         {menuItems.map((product) => (
           <View key={product.id} style={styles.card}>
-            {product.imageUrl ? (
+            {product.imageUrl && (
               <Image source={{ uri: product.imageUrl }} style={styles.productImage} />
-            ) : null}
+            )}
             <Text style={styles.productName}>{product.name}</Text>
             <Text style={styles.description}>{product.description}</Text>
             <Text style={styles.price}>${product.price.toFixed(2)}</Text>
@@ -142,6 +166,7 @@ export default function Client_Menu() {
           </View>
         ))}
       </ScrollView>
+
       <View style={styles.cartContainer}>
         <Text style={styles.sectionTitle}>Carrito</Text>
         {cart.length === 0 ? (
@@ -152,22 +177,22 @@ export default function Client_Menu() {
               <Text style={styles.productName}>{item.product.name}</Text>
               <View style={styles.quantityContainer}>
                 <TouchableOpacity
-                  onPress={() => updateQuantity(item.product.id, item.quantity - 1)}
                   style={styles.quantityButton}
+                  onPress={() => updateQuantity(item.product.id, item.quantity - 1)}
                 >
                   <Text style={styles.quantityButtonText}>-</Text>
                 </TouchableOpacity>
                 <Text style={styles.quantityText}>{item.quantity}</Text>
                 <TouchableOpacity
-                  onPress={() => updateQuantity(item.product.id, item.quantity + 1)}
                   style={styles.quantityButton}
+                  onPress={() => updateQuantity(item.product.id, item.quantity + 1)}
                 >
                   <Text style={styles.quantityButtonText}>+</Text>
                 </TouchableOpacity>
               </View>
               <TouchableOpacity
-                onPress={() => removeFromCart(item.product.id)}
                 style={styles.removeButton}
+                onPress={() => removeFromCart(item.product.id)}
               >
                 <Text style={styles.removeButtonText}>Eliminar</Text>
               </TouchableOpacity>
@@ -178,6 +203,20 @@ export default function Client_Menu() {
           <Text style={styles.orderButtonText}>Ordenar</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Modal para escanear el QR de la mesa */}
+      <CameraModal
+        isVisible={qrModalVisible}
+        scanMode={true}
+        onScanComplete={(data) => {
+          setTableId(data);
+          setQrModalVisible(false);
+        }}
+        onCancel={() => setQrModalVisible(false)}
+        onImageSelected={function (uri: string): void {
+          throw new Error("Function not implemented.");
+        }}
+      />
     </View>
   );
 }
@@ -192,6 +231,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1,
+  },
+  qrButton: {
+    backgroundColor: "#10A37F",
+    padding: 10,
+    alignItems: "center",
+  },
+  qrButtonText: {
+    color: "#fff",
+    fontSize: 16,
   },
   menuContainer: {
     flex: 1,
@@ -295,5 +343,11 @@ const styles = StyleSheet.create({
   orderButtonText: {
     color: "#fff",
     fontSize: 18,
+  },
+  clearTable: {
+    backgroundColor: "#de6d74",
+    padding: 10,
+    alignItems: "center",
+    marginTop: 10,
   },
 });

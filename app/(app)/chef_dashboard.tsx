@@ -16,6 +16,21 @@ export default function Chef_Dashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    let isMounted = true;
+    const tick = () => {
+      if (isMounted) {
+        setNow(Date.now());
+        setTimeout(tick, 1000);
+      }
+    };
+    tick();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const ordersRef = collection(db, "orders");
@@ -63,6 +78,20 @@ export default function Chef_Dashboard() {
     }
   };
 
+  // Calcula los minutos transcurridos usando el estado "now"
+  const getMinutesSinceOrder = (createdAt: any, currentTime: number): number => {
+    let orderDate: Date;
+    if (createdAt && createdAt.toDate) {
+      orderDate = createdAt.toDate();
+    } else if (createdAt && createdAt.seconds) {
+      orderDate = new Date(createdAt.seconds * 1000);
+    } else {
+      orderDate = new Date();
+    }
+    const diffMs = currentTime - orderDate.getTime();
+    return Math.floor(diffMs / 60000);
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -88,6 +117,9 @@ export default function Chef_Dashboard() {
                   ? order.createdAt.toDate().toLocaleString()
                   : new Date(order.createdAt.seconds * 1000).toLocaleString()}
               </Text>
+              <Text style={styles.orderTime}>
+                {getMinutesSinceOrder(order.createdAt, now)} minutos transcurridos
+              </Text>
               <View style={styles.itemsContainer}>
                 {order.items &&
                   order.items.map((item, index) => (
@@ -96,6 +128,10 @@ export default function Chef_Dashboard() {
                       <Text style={styles.itemQuantity}>x{item.quantity}</Text>
                     </View>
                   ))}
+              </View>
+              <View style={styles.itemsContainer}>
+                <Text style={styles.orderId}>{order.tableId}</Text>
+                <Text style={styles.orderStatus}>Total: {order.total}</Text>
               </View>
               {order.status === "Ordered" && (
                 <TouchableOpacity
@@ -179,8 +215,13 @@ const styles = StyleSheet.create({
   },
   orderDate: {
     fontSize: 14,
-    marginBottom: 10,
+    marginBottom: 5,
     color: "#555",
+  },
+  orderTime: {
+    fontSize: 14,
+    marginBottom: 5,
+    color: "#333",
   },
   itemsContainer: {
     borderTopWidth: 1,
