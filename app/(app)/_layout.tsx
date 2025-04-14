@@ -10,6 +10,7 @@ export default function AppLayout() {
     <Drawer drawerContent={(props) => <CustomDrawerContent {...props} />}>
       {/* Define las pantallas que tendrán Drawer */}
       <Drawer.Screen name="admin_dashboard" options={{ title: "Dashboard" }} />
+      <Drawer.Screen name="view_receipts" options={{ title: "Receipts" }} />
       <Drawer.Screen name="chef_dashboard" options={{ title: "Client Orders" }} />
       <Drawer.Screen name="waiter_dashboard" options={{ title: "Dashboard" }} />
       <Drawer.Screen name="cashier_dashboard" options={{ title: "Dashboard" }} />

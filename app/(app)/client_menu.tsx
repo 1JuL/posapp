@@ -22,7 +22,7 @@ export default function Client_Menu() {
   const [ordering, setOrdering] = useState(false);
   const [tableId, setTableId] = useState<string | null>(null);
   const [qrModalVisible, setQrModalVisible] = useState(false);
-  const { user } = useAuth(); // Usuario autenticado
+  const { user } = useAuth();
 
   // Listener en tiempo real para la colección "products"
   useEffect(() => {
@@ -35,6 +35,7 @@ export default function Client_Menu() {
           description: doc.data().description,
           price: doc.data().price,
           imageUrl: doc.data().imageUrl,
+          available: doc.data().available,
         }));
         setMenuItems(products);
         setLoadingMenu(false);
@@ -47,8 +48,9 @@ export default function Client_Menu() {
     return () => unsubscribe();
   }, []);
 
-  // Función para agregar un producto al carrito
+  // Función para agregar un producto al carrito (solo si está disponible)
   const addToCart = (product: Product) => {
+    if (!product.available) return;
     setCart((prevCart) => {
       const existing = prevCart.find((item) => item.product.id === product.id);
       if (existing) {
@@ -160,8 +162,16 @@ export default function Client_Menu() {
             <Text style={styles.productName}>{product.name}</Text>
             <Text style={styles.description}>{product.description}</Text>
             <Text style={styles.price}>${product.price.toFixed(2)}</Text>
-            <TouchableOpacity style={styles.button} onPress={() => addToCart(product)}>
-              <Text style={styles.buttonText}>Agregar al carrito</Text>
+            {/* Si el producto no está disponible, se muestra una etiqueta y se desactiva el botón */}
+            {!product.available && <Text style={styles.notAvailableLabel}>No disponible</Text>}
+            <TouchableOpacity
+              style={[styles.button, !product.available && styles.disabledButton]}
+              onPress={() => addToCart(product)}
+              disabled={!product.available}
+            >
+              <Text style={styles.buttonText}>
+                {product.available ? "Agregar al carrito" : "No disponible"}
+              </Text>
             </TouchableOpacity>
           </View>
         ))}
@@ -213,9 +223,7 @@ export default function Client_Menu() {
           setQrModalVisible(false);
         }}
         onCancel={() => setQrModalVisible(false)}
-        onImageSelected={function (uri: string): void {
-          throw new Error("Function not implemented.");
-        }}
+        onImageSelected={() => {}}
       />
     </View>
   );
@@ -236,6 +244,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#10A37F",
     padding: 10,
     alignItems: "center",
+  },
+  clearTable: {
+    backgroundColor: "#de6d74",
+    padding: 10,
+    alignItems: "center",
+    marginTop: 10,
   },
   qrButtonText: {
     color: "#fff",
@@ -274,12 +288,22 @@ const styles = StyleSheet.create({
     color: "#007bff",
     marginBottom: 10,
   },
+  notAvailableLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#ED8C8C",
+    marginBottom: 10,
+    textAlign: "center",
+  },
   button: {
     backgroundColor: "#10A37F",
     padding: 10,
     borderRadius: 8,
     alignItems: "center",
     marginTop: 10,
+  },
+  disabledButton: {
+    backgroundColor: "#ccc",
   },
   buttonText: {
     color: "#fff",
@@ -343,11 +367,5 @@ const styles = StyleSheet.create({
   orderButtonText: {
     color: "#fff",
     fontSize: 18,
-  },
-  clearTable: {
-    backgroundColor: "#de6d74",
-    padding: 10,
-    alignItems: "center",
-    marginTop: 10,
   },
 });

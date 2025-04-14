@@ -17,10 +17,13 @@ import {
   getDoc,
   setDoc,
   deleteDoc,
+  addDoc,
 } from "firebase/firestore";
 import { db } from "@/utils/firebase";
 import { Order } from "@/interfaces/AppInterfaces";
 import Toast from "react-native-toast-message";
+
+const TAX_RATE = 0.1;
 
 export default function Cashier_Dashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -28,7 +31,7 @@ export default function Cashier_Dashboard() {
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
-    // Filtra únicamente las órdenes que están en "Ready for Payment"
+    // Filtra únicamente las órdenes en estado "Ready for Payment"
     const ordersRef = collection(db, "orders");
     const ordersQuery = query(
       ordersRef,
@@ -53,6 +56,15 @@ export default function Cashier_Dashboard() {
     return () => unsubscribe();
   }, []);
 
+  // Función para calcular el desglose del recibo
+  const calculateBill = (order: Order) => {
+    const subtotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const tax = subtotal * TAX_RATE;
+    const finalTotal = subtotal + tax;
+    return { subtotal, tax, finalTotal };
+  };
+
+  // Función para marcar la orden como pagada, generar el recibo y mover la orden a completadas
   const markOrderAsPaid = async (orderId: string) => {
     setUpdating(true);
     try {
@@ -64,10 +76,38 @@ export default function Cashier_Dashboard() {
       }
       const orderData = orderDocSnap.data();
 
-      // Actualizar el estado a "Paid"
+      // Calcular el desglose usando los items de la orden
+      const { subtotal, tax, finalTotal } = orderData.items.reduce(
+        (acc: { subtotal: number; tax: number; finalTotal: number }, item: any) => {
+          const itemTotal = item.price * item.quantity;
+          return {
+            subtotal: acc.subtotal + itemTotal,
+            tax: 0,
+            finalTotal: 0,
+          };
+        },
+        { subtotal: 0, tax: 0, finalTotal: 0 }
+      );
+      const computedTax = subtotal * TAX_RATE;
+      const computedFinalTotal = subtotal + computedTax;
+
+      // Actualizar el estado de la orden a "Paid" y agregar el timestamp de pago
       const updatedOrder = { ...orderData, status: "Paid", paidAt: new Date() };
 
-      // Guardar en la colección "completedOrders"
+      // Generar el recibo: Guardarlo en la colección "receipts"
+      const receiptData = {
+        orderId,
+        userId: orderData.userId,
+        tableId: orderData.tableId,
+        items: orderData.items,
+        subtotal,
+        tax: computedTax,
+        finalTotal: computedFinalTotal,
+        createdAt: new Date(),
+      };
+      await addDoc(collection(db, "receipts"), receiptData);
+
+      // Guardar la orden actualizada en "completedOrders"
       const completedDocRef = doc(db, "completedOrders", orderId);
       await setDoc(completedDocRef, updatedOrder);
 
@@ -77,7 +117,7 @@ export default function Cashier_Dashboard() {
       Toast.show({
         type: "success",
         text1: "Orden actualizada",
-        text2: "La orden se marcó como Paid y se movió a completadas.",
+        text2: "La orden se marcó como Pagada y se movió a completadas.",
       });
     } catch (error) {
       console.error("Error al actualizar la orden: ", error);
@@ -106,34 +146,48 @@ export default function Cashier_Dashboard() {
         {orders.length === 0 ? (
           <Text style={styles.noOrdersText}>No hay órdenes listas para el pago</Text>
         ) : (
-          orders.map((order) => (
-            <View key={order.id} style={styles.orderCard}>
-              <Text style={styles.orderId}>Orden #{order.id}</Text>
-              <Text style={styles.orderStatus}>Estado: {order.status}</Text>
-              <Text style={styles.orderDate}>
-                Fecha:{" "}
-                {order.createdAt?.toDate
-                  ? order.createdAt.toDate().toLocaleString()
-                  : new Date(order.createdAt.seconds * 1000).toLocaleString()}
-              </Text>
-              <View style={styles.itemsContainer}>
-                {order.items &&
-                  order.items.map((item, index) => (
-                    <View key={index} style={styles.itemRow}>
-                      <Text style={styles.itemName}>{item.name}</Text>
-                      <Text style={styles.itemQuantity}>x{item.quantity}</Text>
-                    </View>
-                  ))}
+          orders.map((order) => {
+            const { subtotal, tax, finalTotal } = calculateBill(order);
+            return (
+              <View key={order.id} style={styles.orderCard}>
+                <Text style={styles.orderId}>Orden #{order.id}</Text>
+                <Text style={styles.orderStatus}>Estado: {order.status}</Text>
+                <Text style={styles.orderDate}>
+                  Fecha:{" "}
+                  {order.createdAt?.toDate
+                    ? order.createdAt.toDate().toLocaleString()
+                    : new Date(order.createdAt.seconds * 1000).toLocaleString()}
+                </Text>
+                <View style={styles.itemsContainer}>
+                  {order.items &&
+                    order.items.map((item, index) => (
+                      <View key={index} style={styles.itemRow}>
+                        <Text style={styles.itemName}>{item.name}</Text>
+                        <Text style={styles.itemQuantity}>
+                          {item.quantity} x ${item.price.toFixed(2)}
+                        </Text>
+                        <Text style={styles.itemTotal}>
+                          ${(item.price * item.quantity).toFixed(2)}
+                        </Text>
+                      </View>
+                    ))}
+                </View>
+                <View style={styles.billContainer}>
+                  <Text style={styles.billText}>Subtotal: ${subtotal.toFixed(2)}</Text>
+                  <Text style={styles.billText}>Impuesto (10%): ${tax.toFixed(2)}</Text>
+                  <Text style={[styles.billText, styles.billTotal]}>
+                    Total: ${finalTotal.toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.itemsContainer}>
+                  <Text style={styles.orderId}>{order.tableId}</Text>
+                </View>
+                <TouchableOpacity style={styles.button} onPress={() => markOrderAsPaid(order.id)}>
+                  <Text style={styles.buttonText}>Mark as Paid</Text>
+                </TouchableOpacity>
               </View>
-              <View style={styles.itemsContainer}>
-                <Text style={styles.orderId}>{order.tableId}</Text>
-                <Text style={styles.orderStatus}>Total: {order.total}</Text>
-              </View>
-              <TouchableOpacity style={styles.button} onPress={() => markOrderAsPaid(order.id)}>
-                <Text style={styles.buttonText}>Mark as Paid</Text>
-              </TouchableOpacity>
-            </View>
-          ))
+            );
+          })
         )}
       </ScrollView>
 
@@ -214,9 +268,30 @@ const styles = StyleSheet.create({
   },
   itemName: {
     fontSize: 16,
+    flex: 1,
   },
   itemQuantity: {
     fontSize: 16,
+    flex: 1,
+    textAlign: "center",
+  },
+  itemTotal: {
+    fontSize: 16,
+    flex: 1,
+    textAlign: "right",
+  },
+  billContainer: {
+    borderTopWidth: 1,
+    borderTopColor: "#ccc",
+    paddingTop: 10,
+    marginBottom: 10,
+  },
+  billText: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  billTotal: {
+    fontWeight: "bold",
   },
   button: {
     backgroundColor: "#10A37F",

@@ -1,4 +1,3 @@
-// screens/ManageMenu.tsx
 import React, { useState, useEffect } from "react";
 import {
   ScrollView,
@@ -9,11 +8,18 @@ import {
   ActivityIndicator,
   Image,
 } from "react-native";
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore";
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+  deleteDoc,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 import { db } from "@/utils/firebase";
 import Toast from "react-native-toast-message";
-import { useRouter } from "expo-router";
-import EditDishModal from "@/components/EditDishModal"; // Asegúrate de que la ruta sea la correcta
+import EditDishModal from "@/components/EditDishModal";
 
 export default function Manage_Menu() {
   const [products, setProducts] = useState<any[]>([]);
@@ -21,7 +27,6 @@ export default function Manage_Menu() {
   const [deleting, setDeleting] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     const productsRef = collection(db, "products");
@@ -70,6 +75,27 @@ export default function Manage_Menu() {
     setModalVisible(true);
   };
 
+  // Función para alternar la disponibilidad del producto
+  const handleToggleAvailability = async (product: any) => {
+    try {
+      await updateDoc(doc(db, "products", product.id), {
+        available: !product.available,
+      });
+      Toast.show({
+        type: "success",
+        text1: "Producto actualizado",
+        text2: `El producto ahora está ${!product.available ? "Disponible" : "No disponible"}.`,
+      });
+    } catch (error) {
+      console.error("Error al actualizar disponibilidad:", error);
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "No se pudo actualizar la disponibilidad del producto.",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -94,6 +120,9 @@ export default function Manage_Menu() {
                 <Text style={styles.productName}>{product.name}</Text>
                 <Text style={styles.productDescription}>{product.description}</Text>
                 <Text style={styles.productPrice}>$ {product.price}</Text>
+                <Text style={styles.productAvailability}>
+                  {product.available ? "Disponible" : "No disponible"}
+                </Text>
               </View>
               <View style={styles.buttonsContainer}>
                 <TouchableOpacity style={styles.editButton} onPress={() => handleEdit(product)}>
@@ -104,6 +133,17 @@ export default function Manage_Menu() {
                   onPress={() => handleDelete(product.id)}
                 >
                   <Text style={styles.buttonText}>Eliminar</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.availableContainer}>
+                <TouchableOpacity
+                  style={styles.toggleButton}
+                  onPress={() => handleToggleAvailability(product)}
+                >
+                  <Text style={styles.buttonText}>
+                    {product.available ? "Marcar como No disponible" : "Marcar como Disponible"}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -124,7 +164,6 @@ export default function Manage_Menu() {
           dish={selectedProduct}
           onClose={() => {
             setModalVisible(false);
-            // Opcional: limpiar la selección luego de cerrar el modal.
             setSelectedProduct(null);
           }}
         />
@@ -190,7 +229,17 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#10A37F",
   },
+  productAvailability: {
+    fontSize: 16,
+    marginTop: 5,
+    color: "#333",
+  },
   buttonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  availableContainer: {
+    marginTop: 10,
     flexDirection: "row",
     justifyContent: "space-between",
   },
@@ -209,6 +258,14 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     marginLeft: 5,
+  },
+  toggleButton: {
+    backgroundColor: "#10A37F",
+    padding: 10,
+    borderRadius: 8,
+    flex: 1,
+    alignItems: "center",
+    marginHorizontal: 5,
   },
   buttonText: {
     color: "#fff",

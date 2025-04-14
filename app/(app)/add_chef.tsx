@@ -7,7 +7,7 @@ export default function Add_Chef() {
     <View style={styles.container}>
       <Text style={styles.title}>Registro de Chef</Text>
       <Image
-        source={require("../../assets/images/chef_icon.png")}
+        source={require("@/assets/images/chef_icon.png")}
         style={styles.image}
         resizeMode="contain"
       />
