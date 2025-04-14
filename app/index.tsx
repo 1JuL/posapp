@@ -1,6 +1,16 @@
-import { Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { useEffect } from "react";
+import { Text, View, ActivityIndicator } from "react-native";
 
 export default function Index() {
+  const router = useRouter();
+
+  useEffect(() => {
+    setTimeout(() => {
+      router.replace("/home");
+    }, 1000);
+  }, []);
+
   return (
     <View
       style={{
@@ -9,7 +19,8 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
+      <ActivityIndicator size="large" color="#0000ff" />
+      <Text style={{ marginTop: 20 }}>Cargando...</Text>
     </View>
   );
 }
