@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "posapp",
-    "slug": "posapp",
+    "name": "restaurant-posapp",
+    "slug": "restaurant-posapp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
